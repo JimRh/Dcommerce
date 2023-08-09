@@ -10,10 +10,10 @@ class CategorySerializers(serializers.ModelSerializer):
   
 
 
-class ProductSerializers(serializers.Serializer):
+class ProductSerializers(serializers.ModelSerializer):
 
     class Meta:
-        model=Category
+        model=Product
         fields=['name','description','quantity','price']
 
 
