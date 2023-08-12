@@ -16,8 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-from .product import urls
+from .product import urls_product
+from .customer import urls_customer
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('',include(urls))
+    path('product/',include(urls_product)),
+    path('auth/',include(urls_customer)),
+  
 ]

@@ -3,18 +3,26 @@ from .models import Category,Product
 
 
 class CategorySerializers(serializers.ModelSerializer):
-
+    
+    parent=serializers.ReadOnlyField(source='parent.name',read_only=True)
+    
+    
     class Meta:
         model=Category
-        fields=['name']
+        fields=['name','parent']
   
 
 
 class ProductSerializers(serializers.ModelSerializer):
+    
+    category=CategorySerializers()
 
     class Meta:
         model=Product
-        fields=['name','description','quantity','price']
+        fields=['name','description','quantity','price','category']
+
+
+       
 
 
 
