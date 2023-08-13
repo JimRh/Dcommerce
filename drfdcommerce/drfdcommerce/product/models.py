@@ -1,6 +1,9 @@
 from django.db import models
 from mptt.models import MPTTModel,TreeForeignKey
-# Create your models here.
+from django.contrib.auth.models import User
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
 
 class Category(MPTTModel):
 
@@ -24,3 +27,22 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+class Cart(models.Model):
+    customer=models.ForeignKey(User,on_delete=models.CASCADE)
+    total_price=models.IntegerField(null=True,default=0)
+    created_at=models.DateTimeField(auto_now_add=True)
+
+class CartItems(models.Model):
+    customer=models.ForeignKey(User,on_delete=models.CASCADE)
+    cart=models.ForeignKey(Cart,on_delete=models.CASCADE)
+    product=models.ForeignKey(Product,on_delete=models.CASCADE)
+    quantity=models.IntegerField()
+    itemprice=models.IntegerField()
+    created_at=models.DateTimeField(auto_now_add=True)
+
+'''@receiver(pre_save, sender=CartItems)
+
+def total_price(sender,**kwargs):
+    cart_items=kwargs['instance']
+    
+'''

@@ -1,6 +1,8 @@
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import *
 from .serializers import CategorySerializers,ProductSerializers
 # Create your views here.
@@ -31,4 +33,68 @@ def get_product_by_cat(request,category):
         queryset=Product.objects.filter(category__in=subcategory)
         product=ProductSerializers(queryset,many=True)
         return Response(product.data)
+
+@api_view(['POST'])
+
+def add_cartitems(request):
+    authentication_classes=[JWTAuthentication]
+    permission_classes=[IsAuthenticated]
+    if request.method=="POST":
+        
+        if request.user.is_authenticated:
+            user=request.user
+            user_id = request.user.id
+            product_id=request.data['product_id']
+            product_id=int(product_id)
+            product_quantity=request.data['quantity']
+            product=Product.objects.get(id=product_id)
+            
+            
+            price=product.price
+            items_totalprice=product_quantity*price
+            
+            print(items_totalprice)
+            
+            cart,_=Cart.objects.get_or_create(customer=user)
+            
+            cart_item = CartItems.objects.create(
+            customer=user,
+            cart=cart,
+            product=product,
+            quantity=product_quantity,
+            itemprice=items_totalprice
+            )
+            
+
+
+            cartitems=CartItems.objects.filter(customer=user_id,product=product_id)
+
+            cartdata=Cart.objects.filter(customer=user_id)
+            
+            totalprice=0
+            if cartdata[0].total_price is None:
+                totalprice=0
+            else:
+                totalprice=cartdata[0].total_price
+            print(totalprice)
+
+            for items in cartitems:
+                
+                item_totalprice=items.itemprice
+                totalprice+=item_totalprice
+                
+            cart.total_price=totalprice
+        
+            cart.save()
+            
+            
+            return Response(totalprice)
+            
+            
+
+
+
+
+
+
 
