@@ -38,11 +38,6 @@ class CartItems(models.Model):
     product=models.ForeignKey(Product,on_delete=models.CASCADE)
     quantity=models.IntegerField()
     itemprice=models.IntegerField()
+    item_totalprice=models.IntegerField()
     created_at=models.DateTimeField(auto_now_add=True)
 
-'''@receiver(pre_save, sender=CartItems)
-
-def total_price(sender,**kwargs):
-    cart_items=kwargs['instance']
-    
-'''

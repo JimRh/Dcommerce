@@ -2,8 +2,13 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from ..product.models import CartItems,Cart
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import Order,OrderItems
+
 
 @api_view(['POST'])
 
@@ -57,4 +62,43 @@ def login(request):
             }
     }
               )        
+
+
+@api_view(['POST'])
+
+def create_order(request):
+     authentication_classes=[JWTAuthentication]
+     permission_classes=[IsAuthenticated]
+     if request.method=="POST":
+        
+        if request.user.is_authenticated:
+            user=request.user
+            user_id = request.user.id
+            shipping_address=request.data['address']
+            contact_number=request.data['phonenumber']
+          
+            order,_=Order.objects.get_or_create(customer=user,shipping_address=shipping_address,contact_number=contact_number)
+            
+            cartitems=CartItems.objects.filter(customer=user_id)
+            cart=Cart.objects.get(customer=user_id)
+            total_price=cart.total_price
+            for item in cartitems:
+                 product_id=item.product.id
+                 product=item.product 
+                 price=item.itemprice
+                 quantity=item.quantity
+                 
+                 OrderItems.objects.create(
+                      customer=user,
+                      order=order,
+                      price=price,
+                      product=product,
+                      quantity=quantity
+                      )
+
+        order.total_order_price=total_price
+        order.save()
+            
+     return Response("ok")
+            
     

@@ -49,6 +49,7 @@ def add_cartitems(request):
             product_quantity=request.data['quantity']
             product=Product.objects.get(id=product_id)
             
+            print(product.id)
             
             price=product.price
             items_totalprice=product_quantity*price
@@ -62,13 +63,14 @@ def add_cartitems(request):
             cart=cart,
             product=product,
             quantity=product_quantity,
-            itemprice=items_totalprice
+            itemprice=price,
+            item_totalprice=items_totalprice
             )
             
 
 
             cartitems=CartItems.objects.filter(customer=user_id,product=product_id)
-
+        
             cartdata=Cart.objects.filter(customer=user_id)
             
             totalprice=0
@@ -76,15 +78,13 @@ def add_cartitems(request):
                 totalprice=0
             else:
                 totalprice=cartdata[0].total_price
-            print(totalprice)
-
-            for items in cartitems:
-                
-                item_totalprice=items.itemprice
-                totalprice+=item_totalprice
+            print("totalprice"+str(totalprice))
+            
+            totalprice+=items_totalprice
+            print("totalprice"+str(totalprice))
                 
             cart.total_price=totalprice
-        
+          
             cart.save()
             
             
