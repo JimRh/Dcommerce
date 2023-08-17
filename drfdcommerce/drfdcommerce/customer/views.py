@@ -8,8 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Order,OrderItems
-
-
+from .onlinepayment import make_payment
+import uuid
 @api_view(['POST'])
 
 def register(request):
@@ -73,32 +73,80 @@ def create_order(request):
         
         if request.user.is_authenticated:
             user=request.user
-            user_id = request.user.id
+            userid = request.user.id
+            
             shipping_address=request.data['address']
             contact_number=request.data['phonenumber']
-          
-            order,_=Order.objects.get_or_create(customer=user,shipping_address=shipping_address,contact_number=contact_number)
-            
-            cartitems=CartItems.objects.filter(customer=user_id)
-            cart=Cart.objects.get(customer=user_id)
+            payment_method=request.data['payment_method'] 
+            cartitems=CartItems.objects.filter(customer=userid)
+            cart=Cart.objects.get(customer=userid)
             total_price=cart.total_price
-            for item in cartitems:
-                 product_id=item.product.id
-                 product=item.product 
-                 price=item.itemprice
-                 quantity=item.quantity
+            if payment_method=='COD':  
+               order=Order.objects.create(customer=user)
+               
+              
+               for item in cartitems:
+                    product_id=item.product.id
+                    product=item.product 
+                    price=item.itemprice
+                    quantity=item.quantity
+                    
+                    OrderItems.objects.create(
+                         customer=user,
+                         order=order,
+                         price=price,
+                         product=product,
+                         quantity=quantity
+                         )
+               
+                    
+                    order.shipping_address=shipping_address
+                    order.contact_number=contact_number
+                    order.total_order_price=total_price
+                    order.save()
+                    cart.delete()
+                    return Response("ok")
+            else:
+               username="test"
+               tran_id=uuid.uuid4()
+               response=make_payment(total_price,tran_id,username,userid,shipping_address,contact_number)
+               redirect_url=response['redirectGatewayURL']
+              
+               
+              
+               return Response(redirect_url)
+               
+             
+     
+@api_view(['POST'])
+def confirm_order(request,userid,address,phone):
+    if request.method=="POST":
+        print(userid)
+        user=User.objects.get(id=userid)
+        
+        order=Order.objects.create(customer=user)
+            
+        cartitems=CartItems.objects.filter(customer=userid)
+        cart=Cart.objects.get(customer=userid)
+        total_price=cart.total_price
+        for item in cartitems:
+               product_id=item.product.id
+               product=item.product 
+               price=item.itemprice
+               quantity=item.quantity
                  
-                 OrderItems.objects.create(
+               OrderItems.objects.create(
                       customer=user,
                       order=order,
                       price=price,
                       product=product,
                       quantity=quantity
-                      )
-
+               )
+        order.shipping_address=address
+        order.contact_number=phone
         order.total_order_price=total_price
+        order.payment_status=True
         order.save()
-            
-     return Response("ok")
-            
-    
+        cart.delete()
+
+        return Response("ok")
