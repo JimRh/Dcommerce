@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import *
-from .serializers import CategorySerializers,ProductSerializers
+from .serializers import CategorySerializers,ProductSerializers,CartItemSerializers,CartSerializers
 # Create your views here.
 
 @api_view(['GET'])
@@ -94,7 +94,41 @@ def add_cartitems(request):
 
 
 
+@api_view(['POST'])
 
+def remove_cartitem(request):
+    authentication_classes=[JWTAuthentication]
+    permission_classes=[IsAuthenticated]
+    if request.user.is_authenticated:
+        user=request.user
+        user_id = request.user.id
+        print(user_id)
+        product_id=request.data['product_id']
+        caritems=CartItems.objects.get(product_id=product_id,customer_id=user_id)
+        cart=Cart.objects.get(customer=user_id)
+        cartprice=cart.total_price
+        updated_price=0
+        if caritems:
+            price=caritems.item_totalprice
+            updated_price=cartprice-price
+            caritems.delete()
+        cart.total_price=updated_price
+        cart.save()
+        return Response("Item removed")
+            
+
+@api_view(["GET"])
+
+def get_cartitems(request):
+    authentication_classes=[JWTAuthentication]
+    permission_classes=[IsAuthenticated]
+    if request.user.is_authenticated:
+        user_id=request.user.id
+        query=CartItems.objects.filter(customer=user_id)
+        
+        cart=CartItemSerializers(query,many=True)
+        
+        return Response(cart.data)
 
 
 

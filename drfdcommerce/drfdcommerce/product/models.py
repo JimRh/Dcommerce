@@ -29,7 +29,7 @@ class Product(models.Model):
 
 class Cart(models.Model):
     customer=models.ForeignKey(User,on_delete=models.CASCADE)
-    total_price=models.IntegerField(null=True,default=0)
+    total_price=models.IntegerField(default=0)
     created_at=models.DateTimeField(auto_now_add=True)
 
 class CartItems(models.Model):
