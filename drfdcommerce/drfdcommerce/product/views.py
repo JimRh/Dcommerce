@@ -48,47 +48,50 @@ def add_cartitems(request):
             product_id=int(product_id)
             product_quantity=request.data['quantity']
             product=Product.objects.get(id=product_id)
+            cur_quantity=product.quantity
+            if cur_quantity>=product_quantity:
             
-           
-            
-            price=product.price
-            items_totalprice=product_quantity*price
-            
-            
-            
-            cart,_=Cart.objects.get_or_create(customer=user)
-            
-            cart_item = CartItems.objects.create(
-            customer=user,
-            cart=cart,
-            product=product,
-            quantity=product_quantity,
-            itemprice=price,
-            item_totalprice=items_totalprice
-            )
-            
-
-
-        
-        
-            cartdata=Cart.objects.filter(customer=user_id)
-            
-            totalprice=0
-            if cartdata[0].total_price is None:
-                totalprice=0
-            else:
-                totalprice=cartdata[0].total_price
-            
-            
-            totalprice+=items_totalprice
-           
+                price=product.price
+                items_totalprice=product_quantity*price
                 
-            cart.total_price=totalprice
-          
-            cart.save()
+                
+                
+                cart,_=Cart.objects.get_or_create(customer=user)
+                
+                cart_item = CartItems.objects.create(
+                customer=user,
+                cart=cart,
+                product=product,
+                quantity=product_quantity,
+                itemprice=price,
+                item_totalprice=items_totalprice
+                )
+                
+
+
             
             
-            return Response(totalprice)
+                cartdata=Cart.objects.filter(customer=user_id)
+                
+                totalprice=0
+                if cartdata[0].total_price is None:
+                    totalprice=0
+                else:
+                    totalprice=cartdata[0].total_price
+                
+                
+                totalprice+=items_totalprice
+            
+                    
+                cart.total_price=totalprice
+            
+                cart.save()
+                
+                
+                return Response(totalprice)
+            
+            else:
+                return Response("quantity is more than stock")
             
             
 

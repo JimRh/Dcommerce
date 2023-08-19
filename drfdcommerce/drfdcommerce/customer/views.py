@@ -2,13 +2,14 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from ..product.models import CartItems,Cart
+from ..product.models import Product,CartItems,Cart
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Order,OrderItems
 from .onlinepayment import make_payment
+from .serializers import OrderItemsSerializers
 import uuid
 @api_view(['POST'])
 
@@ -69,6 +70,7 @@ def login(request):
 def create_order(request):
      authentication_classes=[JWTAuthentication]
      permission_classes=[IsAuthenticated]
+     flag=False
      if request.method=="POST":
         
         if request.user.is_authenticated:
@@ -81,31 +83,46 @@ def create_order(request):
             cartitems=CartItems.objects.filter(customer=userid)
             cart=Cart.objects.get(customer=userid)
             total_price=cart.total_price
-            if payment_method=='COD':  
-               order=Order.objects.create(customer=user)
-               
-              
+            order=Order.objects.create(customer=user)
+            if payment_method=='COD':
+
                for item in cartitems:
-                    product_id=item.product.id
-                    product=item.product 
-                    price=item.itemprice
-                    quantity=item.quantity
-                    
-                    OrderItems.objects.create(
-                         customer=user,
-                         order=order,
-                         price=price,
-                         product=product,
-                         quantity=quantity
-                         )
-               
-                    
+                   product_id=item.product.id
+                   quantity=item.quantity
+                   price=item.item_totalprice
+                   product=Product.objects.get(id=product_id)
+                   cur_quanity=product.quantity
+                   if cur_quanity>=quantity:
+                         OrderItems.objects.create(
+                                   customer=user,
+                                   order=order,
+                                   price=price,
+                                   product=product,
+                                   quantity=quantity
+                                   )
+                         updated_quantity=cur_quanity-quantity
+                         product.quantity=updated_quantity
+                         product.save()
+                         flag=True     
+                   else:
+                       flag=False
+               if flag:          
                     order.shipping_address=shipping_address
                     order.contact_number=contact_number
                     order.total_order_price=total_price
                     order.save()
                     cart.delete()
                     return Response("ok")
+               else:
+                   order.delete()
+                   return Response("Quntity is more than stock")
+               
+                        
+                         
+
+               
+               
+
             else:
                username="test"
                tran_id=uuid.uuid4()
@@ -120,6 +137,7 @@ def create_order(request):
      
 @api_view(['POST'])
 def confirm_order(request,userid,address,phone):
+    flag=False
     if request.method=="POST":
         print(userid)
         user=User.objects.get(id=userid)
@@ -131,22 +149,48 @@ def confirm_order(request,userid,address,phone):
         total_price=cart.total_price
         for item in cartitems:
                product_id=item.product.id
-               product=item.product 
-               price=item.itemprice
                quantity=item.quantity
-                 
-               OrderItems.objects.create(
-                      customer=user,
-                      order=order,
-                      price=price,
-                      product=product,
-                      quantity=quantity
-               )
-        order.shipping_address=address
-        order.contact_number=phone
-        order.total_order_price=total_price
-        order.payment_status=True
-        order.save()
-        cart.delete()
+               price=item.item_totalprice
+               product=Product.objects.get(id=product_id)
+               cur_quanity=product.quantity
+               if cur_quanity>=quantity:
+                         OrderItems.objects.create(
+                                   customer=user,
+                                   order=order,
+                                   price=price,
+                                   product=product,
+                                   quantity=quantity
+                                   )
+                         updated_quantity=cur_quanity-quantity
+                         product.quantity=updated_quantity
+                         product.save()
+                         flag=True     
+               else:
+                    flag=False
+               if flag:          
+                    order.shipping_address=address
+                    order.contact_number=phone
+                    order.payment_status=True
+                    order.total_order_price=total_price
+                    order.save()
+                    cart.delete()
+                    return Response("ok")
+               else:
+                   order.delete()
+                   return Response("Quntity is more than stock")
+    
 
-        return Response("ok")
+@api_view(["GET"])
+
+def get_orders(request):
+    
+    authentication_classes=[JWTAuthentication]
+    permission_classes=[IsAuthenticated]
+    if request.user.is_authenticated:
+        user_id=request.user.id
+        query=OrderItems.objects.filter(customer=user_id)
+        
+        order=OrderItemsSerializers(query,many=True)
+        
+        return Response(order.data)
+    
