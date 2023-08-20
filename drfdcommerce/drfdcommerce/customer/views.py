@@ -83,9 +83,9 @@ def create_order(request):
             cartitems=CartItems.objects.filter(customer=userid)
             cart=Cart.objects.get(customer=userid)
             total_price=cart.total_price
-            order=Order.objects.create(customer=user)
+            
             if payment_method=='COD':
-
+               order=Order.objects.create(customer=user)
                for item in cartitems:
                    product_id=item.product.id
                    quantity=item.quantity
@@ -139,9 +139,9 @@ def create_order(request):
 def confirm_order(request,userid,address,phone):
     flag=False
     if request.method=="POST":
-        print(userid)
-        user=User.objects.get(id=userid)
         
+        user=User.objects.get(id=userid)
+        print(user)
         order=Order.objects.create(customer=user)
             
         cartitems=CartItems.objects.filter(customer=userid)
@@ -154,6 +154,7 @@ def confirm_order(request,userid,address,phone):
                product=Product.objects.get(id=product_id)
                cur_quanity=product.quantity
                if cur_quanity>=quantity:
+                         print('yes')
                          OrderItems.objects.create(
                                    customer=user,
                                    order=order,
@@ -167,17 +168,17 @@ def confirm_order(request,userid,address,phone):
                          flag=True     
                else:
                     flag=False
-               if flag:          
-                    order.shipping_address=address
-                    order.contact_number=phone
-                    order.payment_status=True
-                    order.total_order_price=total_price
-                    order.save()
-                    cart.delete()
-                    return Response("ok")
-               else:
-                   order.delete()
-                   return Response("Quntity is more than stock")
+        if flag:          
+                order.shipping_address=address
+                order.contact_number=phone
+                order.payment_status=True
+                order.total_order_price=total_price
+                order.save()
+                cart.delete()
+                return Response("ok")
+        else:
+            order.delete()
+            return Response("Quntity is more than stock")
     
 
 @api_view(["GET"])
@@ -188,9 +189,41 @@ def get_orders(request):
     permission_classes=[IsAuthenticated]
     if request.user.is_authenticated:
         user_id=request.user.id
-        query=OrderItems.objects.filter(customer=user_id)
+        orders=Order.objects.filter(customer=user_id)
         
-        order=OrderItemsSerializers(query,many=True)
+        orderlist=[]
+
+        for order in orders:
+             orderitemslist=[]
+             orderdic={}
+             id=order.id
+             
+             payment_status=order.payment_status
+             order_total_price=order.total_order_price
+             order_date=order.created_at
+             
+             orderitems=OrderItems.objects.filter(order_id=id)
+             
+             for items in orderitems:
+                  orderitemsdata={
+                       
+                       "product_id":items.product.id,
+                       "product_name":items.product.name,
+                       "product_quantity":items.quantity,
+                       "product_price":items.product.price,
+                     
+
+
+                  }
+                  orderitemslist.append(orderitemsdata)
+                  
+             orderdic={'orderid':id,'orderitems':orderitemslist,'payment_status':payment_status,'order_price':order_total_price,'order_date':order_date}
+             orderlist.append(orderdic)     
+                 
+             
+             
+
         
-        return Response(order.data)
+        
+        return Response(orderlist)
     
